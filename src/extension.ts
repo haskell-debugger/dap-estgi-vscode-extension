@@ -81,6 +81,7 @@ export function activate(context: vscode.ExtensionContext) {
   vscode.window.createTreeView('dap-estgi.heapValuesView', {treeDataProvider: heapValuesProvider});
 
   vscode.debug.onDidChangeActiveDebugSession((e) => {
+    // clear heap view to not show invalid data when the debug session is over
     heapValuesProvider.setRootValue(undefined);
   });
 
@@ -125,7 +126,6 @@ export function activate(context: vscode.ExtensionContext) {
         - value
         - evaluateName
     */
-    vscode.window.showInformationMessage('Running jump to stg...', arg);
     console.log('Running jump to stg...', arg);
     var jsonStr;
     ({variable:{evaluateName:jsonStr}} = arg);
@@ -183,7 +183,6 @@ function mkRangeFromJSON(srcLoc : any) {
 }
 class DLProvider implements vscode.DocumentLinkProvider {
   public provideDocumentLinks(document: TextDocument, token: CancellationToken): ProviderResult<vscode.DocumentLink[]> {
-    vscode.window.showInformationMessage('provideDocumentLinks');
     return vscode.debug.activeDebugSession?.customRequest('getSourceLinks', {path: document.uri.path}).then(
       reply  => {
         return reply.sourceLinks.map((srcLink : any) => {
@@ -197,14 +196,12 @@ class DLProvider implements vscode.DocumentLinkProvider {
       });
   }
   public resolveDocumentLink(link: vscode.DocumentLink, token: CancellationToken): ProviderResult<vscode.DocumentLink> {
-    vscode.window.showInformationMessage('resolveDocumentLink');
     return undefined;
   }
 }
 
 class CLProvider implements vscode.CodeLensProvider {
   public provideCodeLenses(document: TextDocument, token: CancellationToken): ProviderResult<vscode.CodeLens[]> {
-    vscode.window.showInformationMessage('provideCodeLenses');
     return vscode.debug.activeDebugSession?.customRequest('getSourceLinks', {path: document.uri.path}).then(
       reply  => {
         return reply.sourceLinks.map((srcLink : any) => {
@@ -229,7 +226,6 @@ class CLProvider implements vscode.CodeLensProvider {
   }
 
   public resolveCodeLens(codeLens: vscode.CodeLens, token: CancellationToken): ProviderResult<vscode.CodeLens> {
-    vscode.window.showInformationMessage('resolveCodeLens');
     return undefined;
   }
 }
