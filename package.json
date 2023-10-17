@@ -1,5 +1,5 @@
 {
-  "name": "dap-estgi-extension",
+  "name": "dap-estgi",
   "displayName": "Haskell DAP ESTGi",
   "description": "Debug with VSCode",
   "version": "0.0.1",
@@ -9,27 +9,72 @@
   "categories": [
     "Debuggers"
   ],
-  "activationEvents": [ "onDebug", "onDebugResolve:dap-estgi-extension", "onDebug:garbageCollect" ],
+  "activationEvents": [ "onDebug", "onDebugResolve:dap-estgi", "onDebug:garbageCollect" ],
   "main": "./out/extension.js",
   "contributes": {
+    "views": {
+      "debug": [
+        {
+          "id": "dap-estgi.heapValuesView",
+          "name": "Heap Values"
+        }
+      ]
+    },
     "menus": {
-      "debug/toolBar":
-        [
+      "view/item/context": [
+        {
+          "command": "dap-estgi.jumpToStg",
+          "when": "view == dap-estgi.heapValuesView",
+          "group": "debug"
+        }
+      ],
+      "debug/variables/context": [
          { "when": "inDebugMode",
-           "command": "dap-estgi-extension.garbageCollect",
+           "command": "dap-estgi.showGraphStructure",
+           "group": "debug"
+         },
+         { "when": "inDebugMode",
+           "command": "dap-estgi.jumpToStg",
+           "group": "debug"
+         }
+      ],
+      "debug/toolBar": [
+         { "when": "inDebugMode",
+           "command": "dap-estgi.showCallGraph",
+           "group": "debug"
+         },
+         { "when": "inDebugMode",
+           "command": "dap-estgi.garbageCollect",
            "group": "debug"
          }
       ]
     },
     "commands" :[
       {
-        "command": "dap-estgi-extension.garbageCollect",
+        "command": "dap-estgi.showGraphStructure",
         "category": "debug",
-        "title": "Garbage Collect"
+        "title": "Show Graph Structure"
+      },
+      {
+        "command": "dap-estgi.jumpToStg",
+        "category": "debug",
+        "title": "Jump to STG Code"
+      },
+      {
+        "command": "dap-estgi.showCallGraph",
+        "category": "debug",
+        "title": "Show Call Graph",
+        "icon": "$(type-hierarchy-sub)"
+      },
+      {
+        "command": "dap-estgi.garbageCollect",
+        "category": "debug",
+        "title": "Garbage Collect",
+        "icon": "$(trash)"
       }
     ],
     "debuggers": [
-      { "type": "dap-estgi-extension",
+      { "type": "dap-estgi",
         "languages": [
             "haskell"
         ],
@@ -50,7 +95,7 @@
         "initialConfigurations": [
           {
             "name": "Connect to DAP ESTGi",
-            "type": "dap-estgi-extension",
+            "type": "dap-estgi",
             "request": "attach",
             "program": "${workspaceFolder}/**ghc_stgapp"
           }
