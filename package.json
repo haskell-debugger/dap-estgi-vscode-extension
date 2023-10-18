@@ -26,9 +26,18 @@
           "command": "dap-estgi.jumpToStg",
           "when": "view == dap-estgi.heapValuesView",
           "group": "debug"
+        },
+        {
+          "command": "dap-estgi.selectVariableGraphNode",
+          "when": "view == dap-estgi.heapValuesView",
+          "group": "debug"
         }
       ],
       "debug/variables/context": [
+         { "when": "inDebugMode",
+           "command": "dap-estgi.selectVariableGraphNode",
+           "group": "debug"
+         },
          { "when": "inDebugMode",
            "command": "dap-estgi.showGraphStructure",
            "group": "debug"
@@ -50,6 +59,11 @@
       ]
     },
     "commands" :[
+      {
+        "command": "dap-estgi.selectVariableGraphNode",
+        "category": "debug",
+        "title": "Select Graph Node"
+      },
       {
         "command": "dap-estgi.showGraphStructure",
         "category": "debug",

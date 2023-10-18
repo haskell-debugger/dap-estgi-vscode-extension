@@ -61,6 +61,7 @@ export class HeapValuesProvider implements vscode.TreeDataProvider<HeapValue> {
     //item.tooltip = new vscode.MarkdownString ("tooltip text\nline 2");
     item.tooltip = element.variable.value;
     item.description = element.variable.value.split('\n', 1)[0];
+    item.command = {command: "dap-estgi.selectVariableGraphNode", title: "jump to graph node", arguments:[element]};
 
     //item.iconPath = new vscode.ThemeIcon("$(globe)");
     return item;
@@ -135,6 +136,11 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(vscode.commands.registerCommand('dap-estgi.showGraphStructure', (x) => {
     console.log('Running show graph structure...', typeof x, x);
     vscode.debug.activeDebugSession?.customRequest('showVariableGraphStructure', {variablesReference: x.variable.variablesReference});
+  }));
+
+  context.subscriptions.push(vscode.commands.registerCommand('dap-estgi.selectVariableGraphNode', (x) => {
+    console.log('Running select graph node...', typeof x, x);
+    vscode.debug.activeDebugSession?.customRequest('selectVariableGraphNode', {variablesReference: x.variable.variablesReference});
   }));
 
   runDebugger (context, new MockDebugAdapterServerDescriptorFactory());
@@ -215,8 +221,7 @@ class CLProvider implements vscode.CodeLensProvider {
               var uri = vscode.Uri.parse('debug:'+srcLink.targetPath, true);
               var locations = [new vscode.Location(uri, trange)];
               var cmd = {
-                    title: "peek haskell source",
-                    tooltip: "Tooltip\nprovided\n by sample\n extension",
+                    title: srcLink.targetPath,
                     command: "editor.action.peekLocations",
                     arguments: [document.uri, spos1, locations, 'peek']
                   };
