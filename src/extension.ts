@@ -7,6 +7,8 @@ import { tmpdir } from 'os';
 import { join } from 'path';
 import { platform } from 'process';
 import { ProviderResult, TextDocument, CancellationToken } from 'vscode';
+import { HeapValuesProvider } from './heapview';
+import { RegionsProvider } from './regionview';
 
 function showCodeRange(srcLoc : any) {
     var range = mkRangeFromJSON(srcLoc);
@@ -26,54 +28,6 @@ function showCodeRange(srcLoc : any) {
     });
 }
 
-type HeapValue = {
-  variable: any;
-  isRoot: boolean;
-};
-
-export class HeapValuesProvider implements vscode.TreeDataProvider<HeapValue> {
-  private _onDidChangeTreeData: vscode.EventEmitter<HeapValue | undefined> = new vscode.EventEmitter<HeapValue | undefined>();
-  readonly onDidChangeTreeData: vscode.Event<HeapValue | undefined> = this._onDidChangeTreeData.event;
-
-  private topElement: any | undefined = undefined;
-
-  getChildren(element?: HeapValue): ProviderResult<HeapValue[]> {
-    console.log("getChildren:", element);
-    if (vscode.debug.activeDebugSession === undefined || this.topElement === undefined) {
-      return [];
-    }
-
-    if(element === undefined) {
-      return [{variable: this.topElement, isRoot: true}];
-    }
-    if (element.variable.variablesReference === 0) {
-      return [];
-    }
-    return vscode.debug.activeDebugSession?.customRequest('variables', {variablesReference: element.variable.variablesReference}).then(
-      reply => reply.variables.map((v:any) => ({variable:v, isRoot: false}))
-    );
-  }
-  getTreeItem(element: HeapValue): vscode.TreeItem | Thenable<vscode.TreeItem> {
-    console.log("getTreeItem:", element);
-    //var l : vscode.TreeItemLabel = {label: element.name, highlights:[[1,2], [3,4]]};
-    var state = (element.variable.variablesReference === 0) ? vscode.TreeItemCollapsibleState.None : vscode.TreeItemCollapsibleState.Collapsed;
-    var item = new vscode.TreeItem(`${element.variable.name + (element.isRoot ? '' : ':')} ${element.variable.type || ''}`, state);
-    //item.tooltip = new vscode.MarkdownString ("tooltip text\nline 2");
-    item.tooltip = element.variable.value;
-    item.description = element.variable.value.split('\n', 1)[0];
-    item.command = {command: "dap-estgi.selectVariableGraphNode", title: "jump to graph node", arguments:[element]};
-
-    //item.iconPath = new vscode.ThemeIcon("$(globe)");
-    return item;
-  }
-
-  setRootValue(topVariable: any | undefined) {
-    console.log("showRootValue:", topVariable);
-    this.topElement = topVariable;
-    this._onDidChangeTreeData.fire(undefined);
-  }
-}
-
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
@@ -81,9 +35,13 @@ export function activate(context: vscode.ExtensionContext) {
   var heapValuesProvider = new HeapValuesProvider();
   vscode.window.createTreeView('dap-estgi.heapValuesView', {treeDataProvider: heapValuesProvider});
 
+  var regionsProvider = new RegionsProvider();
+  vscode.window.createTreeView('dap-estgi.regionsView', {treeDataProvider: regionsProvider});
+
   vscode.debug.onDidChangeActiveDebugSession((e) => {
     // clear heap view to not show invalid data when the debug session is over
     heapValuesProvider.setRootValue(undefined);
+    regionsProvider.refresh();
   });
 
   vscode.debug.onDidReceiveDebugSessionCustomEvent(dapEvent => {
@@ -94,6 +52,9 @@ export function activate(context: vscode.ExtensionContext) {
         break;
       case "showValue":
         heapValuesProvider.setRootValue(dapEvent.body.variable);
+        break;
+      case "refreshCustomViews":
+        regionsProvider.refresh();
         break;
       default:
         console.log("unknown custom event:", dapEvent);
@@ -136,6 +97,11 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(vscode.commands.registerCommand('dap-estgi.showGraphStructure', (x) => {
     console.log('Running show graph structure...', typeof x, x);
     vscode.debug.activeDebugSession?.customRequest('showVariableGraphStructure', {variablesReference: x.variable.variablesReference});
+  }));
+
+  context.subscriptions.push(vscode.commands.registerCommand('dap-estgi.showRetainerGraph', (x) => {
+    console.log('Running show retainer graph...', typeof x, x);
+    vscode.debug.activeDebugSession?.customRequest('showRetainerGraph', {variablesReference: x.variable.variablesReference});
   }));
 
   context.subscriptions.push(vscode.commands.registerCommand('dap-estgi.selectVariableGraphNode', (x) => {
